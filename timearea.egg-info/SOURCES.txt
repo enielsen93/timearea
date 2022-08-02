@@ -1,0 +1,8 @@
+setup.py
+timearea/__init__.py
+timearea/timearea.py
+timearea.egg-info/PKG-INFO
+timearea.egg-info/SOURCES.txt
+timearea.egg-info/dependency_links.txt
+timearea.egg-info/requires.txt
+timearea.egg-info/top_level.txt

@@ -1,0 +1,57 @@
+import mikegraph
+from io import StringIO
+import pandas as pd
+import numpy as np
+import ColebrookWhite
+import networkx as nx
+
+class TimeArea:
+    def __init__(self, rain_filepath):
+        with open(rain_filepath, 'r') as f:
+            txt = f.read()
+
+        delimiter = r"  " if "  " in txt else r"\t"
+        if "," in txt:
+            txt = txt.replace(r",", r".")
+            rain_filepath = StringIO(unicode(txt))
+
+        series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine = 'python')
+        series.index = pd.to_datetime(series.index)
+        series = series.resample("60S").backfill()
+
+        self.rain_event = np.concatenate((series.values[:, 0], np.zeros(60)))
+
+    def runoffCurve(self, concentration_time, travel_time):
+        runoff = np.zeros(len(self.rain_event))
+        for time_i, rain_intensity in enumerate(self.rain_event):
+            time_i_adjusted = time_i - travel_time
+            rain = self.rain_event[max(int(time_i_adjusted - concentration_time), 0):max(0, int(time_i_adjusted))]
+            print(rain)
+            print(concentration_time)
+            runoff[time_i] = np.sum(rain) / concentration_time if rain.any() else 0
+
+        return runoff
+
+    def timeareaCurve(self, target, graph):
+        sources = graph.find_upstream_nodes(target)[0]
+
+        runoff = np.zeros(len(self.rain_event))
+        for source in sources:
+            travel_time = graph.travel_time(source, target)
+
+            for catchment in graph.find_connected_catchments(source):
+                runoff += self.runoffCurve(catchment.concentration_time, travel_time)/1e6*catchment.reduced_area*1e3
+
+        return runoff
+
+
+if __name__ == "__main__":
+    graph = mikegraph.Graph(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\Aarhus Vand\Kongelund og Marselistunnel\MIKE\KOM_Plan_025\KOM_Plan_025_tangkrogen_opdim.mdb")
+    graph.map_network()
+
+    rainseries = TimeArea(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\Aarhus Vand\Kongelund og Marselistunnel\MIKE\02_RAIN\CDS_T5_5 min.txt")
+
+    rainseries.timeareaCurve("O23114R", graph)
+
+    print("PAUSE")
+# [u'O23119R', u'O23117R-1', u'O23116R', u'O23117R', u'O23114R', u'O23134R', u'O23118R', u'O23115R']

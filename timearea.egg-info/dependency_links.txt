@@ -1,0 +1,3 @@
+https://github.com/enielsen93/networker/tarball/master
+https://github.com/enielsen93/ColebrookWhite/tarball/master
+https://github.com/enielsen93/mikegraph/tarball/master
