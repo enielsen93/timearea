@@ -1,1 +1,1 @@
-from timearea import TimeArea
+from .timearea import TimeAreaCurve
