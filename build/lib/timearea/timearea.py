@@ -21,35 +21,49 @@ class TimeArea:
 
         self.rain_event = np.concatenate((series.values[:, 0], np.zeros(60)))
 
-    def runoffCurve(self, concentration_time, travel_time):
-        runoff = np.zeros(len(self.rain_event))
-        for time_i, rain_intensity in enumerate(self.rain_event):
-            time_i_adjusted = time_i - travel_time
-            rain = self.rain_event[max(int(time_i_adjusted - concentration_time), 0):max(0, int(time_i_adjusted))]
-            runoff[time_i] = np.sum(rain) / concentration_time if rain.any() else 0
 
-        return runoff
+    def rationelCurve(self, target, graph):
+        sources = graph.find_upstream_nodes(target)[0]
+
+        total_runoff = np.zeros(len(self.rain_event))
+        for source in sources:
+            for catchment in graph.find_connected_catchments(source):
+                total_runoff += self.rain_event/1e6*catchment.reduced_area*1e3
+        return total_runoff
 
     def timeareaCurve(self, target, graph):
         sources = graph.find_upstream_nodes(target)[0]
 
-        runoff = np.zeros(len(self.rain_event))
+        total_runoff = np.zeros(len(self.rain_event))
         for source in sources:
             travel_time = graph.travel_time(source, target)
 
             for catchment in graph.find_connected_catchments(source):
-                runoff += self.runoffCurve(catchment.concentration_time, travel_time/60)/1e6*catchment.reduced_area*1e3
+                runoff = np.zeros(len(self.rain_event))
+                for time_i, rain_intensity in enumerate(self.rain_event):
+                    time_i_adjusted = time_i - travel_time/60
+                    rain = self.rain_event[
+                           max(int(time_i_adjusted - catchment.concentration_time), 0):max(0, int(time_i_adjusted))]
+                    runoff[time_i] = np.sum(rain) / catchment.concentration_time if rain.any() else 0
 
-        return runoff
+                total_runoff += runoff/1e6*catchment.reduced_area*1e3
+
+        return total_runoff
 
 
 if __name__ == "__main__":
-    graph = mikegraph.Graph(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\Aarhus Vand\Kongelund og Marselistunnel\MIKE\KOM_Plan_042\KOM_Plan_042.mdb")
+    graph = mikegraph.Graph(r"C:\Offline\MOL_055R_opdim_Langebro.mdb")
     graph.map_network()
 
-    rainseries = TimeArea(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\Aarhus Vand\Kongelund og Marselistunnel\MIKE\02_RAIN\CDS_T10_5 min.txt")
+    rainseries = TimeArea(r"C:\Offline\MOL_CDS5Aar.txt")
 
-    print(rainseries.timeareaCurve(u'KOM_Plan_10612', graph))
+    discharge_ta = rainseries.timeareaCurve(u'Node_93', graph)
+    discharge_rat = rainseries.rationelCurve(u'Node_93', graph)
 
+    import matplotlib.pyplot as plt
+
+    plt.step(range(len(discharge_rat)), discharge_rat*1.51)
+    plt.step(range(len(discharge_ta)), discharge_ta*1.51)
+    plt.show()
     print("PAUSE")
 # [u'O23119R', u'O23117R-1', u'O23116R', u'O23117R', u'O23114R', u'O23134R', u'O23118R', u'O23115R']
