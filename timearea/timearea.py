@@ -15,11 +15,11 @@ class TimeArea:
             txt = txt.replace(r",", r".")
             rain_filepath = StringIO(unicode(txt))
 
-        series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine = 'python')
-        series.index = pd.to_datetime(series.index)
-        series = series.resample("60S").ffill()
+        self.series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine='python')
+        self.series.index = pd.to_datetime(self.series.index)
+        self.series = self.series.resample("60S").bfill()
 
-        self.rain_event = np.concatenate((series.values[:, 0], np.zeros(60)))
+        self.rain_event = np.concatenate((self.series.values[:, 0], np.zeros(60)))
         self.additional_discharge = {}
         self.scaling_factor = 1
 

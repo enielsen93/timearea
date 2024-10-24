@@ -15,20 +15,24 @@ class TimeArea:
             txt = txt.replace(r",", r".")
             rain_filepath = StringIO(unicode(txt))
 
-        series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine = 'python')
-        series.index = pd.to_datetime(series.index)
-        series = series.resample("60S").ffill()
+        self.series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine='python')
+        self.series.index = pd.to_datetime(self.series.index)
+        self.series = self.series.resample("60S").bfill()
 
-        self.rain_event = np.concatenate((series.values[:, 0], np.zeros(60)))
-
+        self.rain_event = np.concatenate((self.series.values[:, 0], np.zeros(60)))
+        self.additional_discharge = {}
+        self.scaling_factor = 1
 
     def rationelCurve(self, target, graph):
         sources = graph.find_upstream_nodes(target)[0]
 
         total_runoff = np.zeros(len(self.rain_event))
         for source in sources:
+            if source in self.additional_discharge:
+                total_runoff += self.additional_discharge[source]*1e3
+
             for catchment in graph.find_connected_catchments(source):
-                total_runoff += self.rain_event/1e6*catchment.reduced_area*1e3
+                total_runoff += self.rain_event/1e6*catchment.reduced_area*1e3*self.scaling_factor
         return total_runoff
 
     def timeareaCurve(self, target, graph):
@@ -36,6 +40,12 @@ class TimeArea:
 
         total_runoff = np.zeros(len(self.rain_event))
         for source in sources:
+            # raise(Exception(self.additional_discharge.keys()[0]))
+            if source in self.additional_discharge:
+                # raise (Exception(source, self.additional_discharge[source]*1e3))
+                total_runoff += self.additional_discharge[source]*1e3
+                # raise(self.additional_discharge[source]*1e3)
+
             travel_time = graph.travel_time(source, target)
 
             for catchment in graph.find_connected_catchments(source):
@@ -46,24 +56,27 @@ class TimeArea:
                            max(int(time_i_adjusted - catchment.concentration_time), 0):max(0, int(time_i_adjusted))]
                     runoff[time_i] = np.sum(rain) / catchment.concentration_time if rain.any() else 0
 
-                total_runoff += runoff/1e6*catchment.reduced_area*1e3
+                total_runoff += runoff/1e6*catchment.reduced_area*1e3*self.scaling_factor
 
         return total_runoff
 
 
 if __name__ == "__main__":
-    graph = mikegraph.Graph(r"C:\Offline\MOL_055R_opdim_Langebro.mdb")
+    graph = mikegraph.Graph(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\MOL\MOL_059R.mdb")
     graph.map_network()
 
-    rainseries = TimeArea(r"C:\Offline\MOL_CDS5Aar.txt")
+    rainseries = TimeArea(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\MOL\MOL_CDS5Aar.txt")
+    rainseries.additional_discharge = {"SEMI25":0.25}
 
-    discharge_ta = rainseries.timeareaCurve(u'Node_93', graph)
-    discharge_rat = rainseries.rationelCurve(u'Node_93', graph)
-
-    import matplotlib.pyplot as plt
-
-    plt.step(range(len(discharge_rat)), discharge_rat*1.51)
-    plt.step(range(len(discharge_ta)), discharge_ta*1.51)
-    plt.show()
-    print("PAUSE")
+    discharge_ta = rainseries.timeareaCurve(u'SEMI30', graph)
+    import timeit
+    timeit.timeit(lambda: rainseries.timeareaCurve(u'SEMI30', graph), number = 5)
+    # discharge_rat = rainseries.rationelCurve(u'SEMI30', graph)
+    #
+    # import matplotlib.pyplot as plt
+    #
+    # plt.step(range(len(discharge_rat)), discharge_rat)
+    # plt.step(range(len(discharge_ta)), discharge_ta)
+    # plt.show()
+    # print("PAUSE")
 # [u'O23119R', u'O23117R-1', u'O23116R', u'O23117R', u'O23114R', u'O23134R', u'O23118R', u'O23115R']
