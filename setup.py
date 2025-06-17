@@ -9,7 +9,7 @@ from setuptools import setup
 
 setup(
     name='timearea',
-    version='1.1.0',    
+    version='1.1.1',    
     description='Python Package for calculating a time area curve for a Mike Urban Database',
     url='https://github.com/enielsen93/timearea',
     author='Emil Nielsen',
