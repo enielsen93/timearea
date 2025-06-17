@@ -7,19 +7,27 @@ import networkx as nx
 
 class TimeArea:
     def __init__(self, rain_filepath):
-        with open(rain_filepath, 'r') as f:
-            txt = f.read()
+        if os.path.splitext(rain_filepath)[1].lower() == ".dfs0":
+            import mikeio
+            dfs0 = mikeio.open(rain_filepath)
+            self.series = dfs0.to_pandas()
+            self.series = self.series.resample("60s").bfill()
+            self.rain_event = np.concatenate((self.series.values[:], np.zeros(60)))
 
-        delimiter = r"  " if "  " in txt else r"\t"
-        if "," in txt:
-            txt = txt.replace(r",", r".")
-            rain_filepath = StringIO(unicode(txt))
+        else:
+            with open(rain_filepath, 'r') as f:
+                txt = f.read()
 
-        self.series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine='python')
-        self.series.index = pd.to_datetime(self.series.index)
-        self.series = self.series.resample("60S").bfill()
+            delimiter = r"  " if "  " in txt else r"\t"
+            if "," in txt:
+                txt = txt.replace(r",", r".")
+                rain_filepath = StringIO(unicode(txt))
 
-        self.rain_event = np.concatenate((self.series.values[:, 0], np.zeros(60)))
+            self.series = pd.read_csv(rain_filepath, delimiter=delimiter, skiprows=3, names=["Intensity"], engine='python')
+            self.series.index = pd.to_datetime(self.series.index)
+            self.series = self.series.resample("60s").bfill()
+            self.rain_event = np.concatenate((self.series.values[:, 0], np.zeros(60)))
+
         self.additional_discharge = {}
         self.scaling_factor = 1
 
@@ -40,11 +48,8 @@ class TimeArea:
 
         total_runoff = np.zeros(len(self.rain_event))
         for source in sources:
-            # raise(Exception(self.additional_discharge.keys()[0]))
             if source in self.additional_discharge:
-                # raise (Exception(source, self.additional_discharge[source]*1e3))
                 total_runoff += self.additional_discharge[source]*1e3
-                # raise(self.additional_discharge[source]*1e3)
 
             travel_time = graph.travel_time(source, target)
 
@@ -55,28 +60,27 @@ class TimeArea:
                     rain = self.rain_event[
                            max(int(time_i_adjusted - catchment.concentration_time), 0):max(0, int(time_i_adjusted))]
                     runoff[time_i] = np.sum(rain) / catchment.concentration_time if rain.any() else 0
-
                 total_runoff += runoff/1e6*catchment.reduced_area*1e3*self.scaling_factor
 
         return total_runoff
 
 
 if __name__ == "__main__":
-    graph = mikegraph.Graph(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\MOL\MOL_059R.mdb")
+    graph = mikegraph.Graph(r"C:\Users\elnn\OneDrive - Ramboll\Documents\Aarhus Vand\Soenderhoej\MIKE\MIKE_URBAN\_ORIGINAL\Viby_detailed_200101_40\Viby_detailed_200101_40.sqlite")
     graph.map_network()
 
-    rainseries = TimeArea(r"C:\Users\ELNN\OneDrive - Ramboll\Documents\MOL\MOL_CDS5Aar.txt")
-    rainseries.additional_discharge = {"SEMI25":0.25}
+    rainseries = TimeArea(r"C:\Users\elnn\OneDrive - Ramboll\Documents\Aarhus Vand\Hasle Torv\MIKE_URBAN\02_RAIN\CDS\CDS_5_5 min.txt")
+    # rainseries.additional_discharge = {"SEMI25":0.25}
 
-    discharge_ta = rainseries.timeareaCurve(u'SEMI30', graph)
-    import timeit
-    timeit.timeit(lambda: rainseries.timeareaCurve(u'SEMI30', graph), number = 5)
-    # discharge_rat = rainseries.rationelCurve(u'SEMI30', graph)
+    discharge_ta = rainseries.timeareaCurve(u'D43440R', graph)
+    # import timeit
+    # timeit.timeit(lambda: rainseries.timeareaCurve(u'Haslevangsvej_R719', graph), number = 5)
+    discharge_rat = rainseries.rationelCurve(u'D43440R', graph)
     #
-    # import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
     #
-    # plt.step(range(len(discharge_rat)), discharge_rat)
-    # plt.step(range(len(discharge_ta)), discharge_ta)
-    # plt.show()
-    # print("PAUSE")
+    plt.step(range(len(discharge_rat)), discharge_rat)
+    plt.step(range(len(discharge_ta)), discharge_ta)
+    plt.show()
+    print("PAUSE")
 # [u'O23119R', u'O23117R-1', u'O23116R', u'O23117R', u'O23114R', u'O23134R', u'O23118R', u'O23115R']
