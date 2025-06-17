@@ -11,7 +11,7 @@ class TimeArea:
         if os.path.splitext(rain_filepath)[1].lower() == ".dfs0":
             import mikeio
             dfs0 = mikeio.open(rain_filepath)
-            self.series = dfs0.to_pandas()
+            self.series = dfs0.read().to_pandas()
             self.series = self.series.resample("60s").bfill()
             self.rain_event = np.concatenate((self.series.values[:], np.zeros(60)))
 
@@ -67,21 +67,21 @@ class TimeArea:
 
 
 if __name__ == "__main__":
-    graph = mikegraph.Graph(r"C:\Users\elnn\OneDrive - Ramboll\Documents\Aarhus Vand\Soenderhoej\MIKE\MIKE_URBAN\_ORIGINAL\Viby_detailed_200101_40\Viby_detailed_200101_40.sqlite")
-    graph.map_network()
+    # graph = mikegraph.Graph(r"C:\Users\elnn\OneDrive - Ramboll\Documents\Aarhus Vand\Soenderhoej\MIKE\MIKE_URBAN\_ORIGINAL\Viby_detailed_200101_40\Viby_detailed_200101_40.sqlite")
+    # graph.map_network()
 
     rainseries = TimeArea(r"C:\Users\elnn\OneDrive - Ramboll\Documents\Aarhus Vand\Jens Juuls Vej\MIKE_URBAN\02_RAIN\CDS_T5_5 min.DFS0")
     # rainseries.additional_discharge = {"SEMI25":0.25}
-
-    discharge_ta = rainseries.timeareaCurve(u'D43440R', graph)
-    # import timeit
-    # timeit.timeit(lambda: rainseries.timeareaCurve(u'Haslevangsvej_R719', graph), number = 5)
-    discharge_rat = rainseries.rationelCurve(u'D43440R', graph)
     #
-    import matplotlib.pyplot as plt
-    #
-    plt.step(range(len(discharge_rat)), discharge_rat)
-    plt.step(range(len(discharge_ta)), discharge_ta)
-    plt.show()
-    print("PAUSE")
+    # discharge_ta = rainseries.timeareaCurve(u'D43440R', graph)
+    # # import timeit
+    # # timeit.timeit(lambda: rainseries.timeareaCurve(u'Haslevangsvej_R719', graph), number = 5)
+    # discharge_rat = rainseries.rationelCurve(u'D43440R', graph)
+    # #
+    # import matplotlib.pyplot as plt
+    # #
+    # plt.step(range(len(discharge_rat)), discharge_rat)
+    # plt.step(range(len(discharge_ta)), discharge_ta)
+    # plt.show()
+    # print("PAUSE")
 # [u'O23119R', u'O23117R-1', u'O23116R', u'O23117R', u'O23114R', u'O23134R', u'O23118R', u'O23115R']
