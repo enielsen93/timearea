@@ -1,5 +1,5 @@
 # ⚠️ Deprecated
-This repository is no longer maintained. Please use [Mikegraph]([]) instead.
+This repository is no longer maintained. Please use [Mikegraph]([https://github.com/enielsen93/mikegraph]) instead.
 # timearea
  Python Package for calculating a time area curve for a Mike Urban Database.
 
